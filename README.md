@@ -16,26 +16,24 @@ This project demonstrates a state machine implementation using an Arduino to con
                 +-------+----------+
                 |     Base State   |
                 +--+-----------+---+
-                   |           |
-       +-----------+           +-------------+
-       |                                       |
-       v                                       v
-  +----+-----+                           +-----+-----+
-  | First     |                           | Second    |
-  |  State    |-------------------------->|  State    |
-  +----+------+                           +------+-----+
-       |                                        |
-       |                                        v
-       |                                 +------+------+
-       |                                 |   Third     |
-       |                                 |   State     |
-       |                                 +------+------+
-       |                                        |
-       |                                        v
-       +---------------------------------->+----+----+
-                                           | BLINKING |
-                                           |(LED Blink)|
-                                           +-----------+
+                           | 
+                           |              
+                      +----+-----+                             +-----+-----+
+                      | First     |                            | Second    |
+                      |  State    |<-------------------------->|  State    |
+                      +----+------+                            +------+----+
+                           |                                        |
+                           |                                        v
+                           |                                 +------+------+
+                           |                                 |   Third     |
+                           |                                 |   State     |
+                           |                                 +------+------+
+                           |                                        |
+                           |                                        v
+                           +<---------------------------------->+----+-----+
+                                                               | BLINKING  |
+                                                               |(LED Blink)|
+                                                               +-----------+
 ```
 ***State Transitions***
 **First State:** Turns on the RED LED. Can transition to the Second <br> State.
