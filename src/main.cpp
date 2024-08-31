@@ -301,6 +301,7 @@ void setup() {
    while (!Serial) {
     ; // Wait for serial port to connect. Needed for native USB port only
   }
+  Serial.println("STATE MACHINE HAS BEEN STARTED ");
   mc = new Main(RED,YELLOW,GREEN,BLINK,UP,DW);
   mc->setLEDBLK_INTERVAL(150);
   
