@@ -1,7 +1,46 @@
 #include <Arduino.h>
 
 class Main;
-class BLINKING;
+class BLINKING{
+    public:
+      int _LED_BLK;
+      unsigned long _interval;
+      unsigned long currentMillis, previousMillis = 0;
+      bool ledglow = true;
+
+    public:
+      BLINKING()
+      {
+        Serial.println("BLINKING CLASS HAS BEEN CREATED");
+      }
+
+      void BlinkSetup(int LED_BLK,unsigned long interval)
+      {
+        _LED_BLK = LED_BLK;
+        _interval = interval;
+        pinMode(_LED_BLK,OUTPUT);
+      }
+
+      void blinking()
+      {
+        currentMillis = millis();
+        if(currentMillis - previousMillis >= _interval)
+        {
+          ledglow = !ledglow;
+          previousMillis = currentMillis;
+        }
+        digitalWrite(_LED_BLK,ledglow);
+      }
+
+      void blinkingDisable()
+      {
+        digitalWrite(_LED_BLK, LOW);
+      }
+      ~BLINKING(){ }
+
+};
+
+
 class Base{
 
   public:
@@ -20,7 +59,7 @@ class FIRSTSTATE : public Base{
           int LED_INSIDE_CLASS;
 
       public:
-       void previousState(Main *mc) override { }
+       void previousState(Main *mc) override;
        void nextState(Main *mc) override;
        void display(int LED)
        {
@@ -61,44 +100,33 @@ class THIRDSTATE : public Base{
        {
         if(!blink)
         {
-        blink = new BLINKING(LED,150);
-
+        blink = new BLINKING;
         }
+
         LED_INSIDE_CLASS = LED;
         digitalWrite(LED,HIGH);
         Serial.print("THIRD STATE : LED IS HIGH LED NAME >> ");
         Serial.println(LED);
        }
-};
 
-class BLINKING{
-    public:
-      int _LED_BLK;
-      unsigned long _interval;
-      unsigned long currentMillis, previousMillis = 0;
-
-    public:
-      BLINKING(int LED_BLK, unsigned long interval = 250) : _LED_BLK(LED_BLK),_interval(interval)
-      {
-        Serial.println("BLINKING CLASS HAS BEEN CREATED");
-        pinMode(_LED_BLK,OUTPUT);
-      }
-
-      void blinking()
-      {
-        currentMillis = millis();
-        bool ledglow = true;
-        if(currentMillis - previousMillis >= _interval)
+       void blinkingLedSetup(int _LED_BLK, unsigned long interval)
+       {
+        if(blink)
         {
-          ledglow != ledglow;
-          previousMillis = currentMillis;
+          blink->BlinkSetup(_LED_BLK,interval);
+        }       
+        else
+        {
+          Serial.println("Blink is not initialized");
         }
-        digitalWrite(_LED_BLK,ledglow);
-      }
+       }
 
-      ~BLINKING(){ }
-
+        void blinkingLedDisable()
+        {
+          blink->blinkingDisable();
+        }
 };
+
 
 class Main{
   private:
@@ -106,7 +134,7 @@ class Main{
       FIRSTSTATE *firstSate = new FIRSTSTATE;
       SECONDSTATE *secondState = new SECONDSTATE;
       THIRDSTATE *thirdState = new THIRDSTATE;
-
+    
       int _LED_R;
       int _LED_Y;
       int _LED_G;
@@ -116,16 +144,17 @@ class Main{
       int _DW;
 
       unsigned long currentMillis, previousMillis = 0;
-      unsigned long interval = 100;
+      unsigned long interval = 500;
+      unsigned long _blkInterval = 250;
   public:
       Main(int R, int Y, int G ,int BL, int UP , int DW) : _LED_R(R),_LED_Y(Y),_LED_G(G),
                                                    _LED_BL(BL), _UP(UP), _DW(DW)
       {
         Serial.println("FIRST MAIN IS CREATED");
-        pinMode(_LED_R,INPUT);
-        pinMode(_LED_Y,INPUT);
-        pinMode(_LED_G,INPUT);
-        pinMode(_LED_BL,INPUT);
+        pinMode(_LED_R,OUTPUT);
+        pinMode(_LED_Y,OUTPUT);
+        pinMode(_LED_G,OUTPUT);
+        pinMode(_LED_BL,OUTPUT);
 
         pinMode(_UP,INPUT_PULLUP);
         pinMode(_DW,INPUT_PULLUP);
@@ -161,46 +190,32 @@ class Main{
             previousMillis = currentMillis;
           }
         }
-
+    if (activeState == thirdState && thirdState->blink) {
+        thirdState->blink->blinking();
+      }
       }
 
-      void changeState(Base *state)
-      {
-        activeState = state;
-      }
+      void setLEDBLK_INTERVAL(unsigned long blkInterval) {  _blkInterval = blkInterval; }
 
-      Base* getfirstState()
-      {
-        return firstSate;
-      }
-       Base* getSecondState()
-      {
-        return secondState;
-      }
-       Base* getThirdState()
-      {
-        return thirdState;
-      }
+      unsigned long getLEDBLK_INTERVAL() { return _blkInterval;  }
 
-      int getLED_R()
-      {
-        return _LED_R;
-      }
+      void changeState(Base *state) { activeState = state; }
 
-      int getLED_Y()
-      {
-        return _LED_Y;
-      }
+      Base* getfirstState(){ return firstSate; }
+      
+      Base* getSecondState() { return secondState; }
+      
+      Base* getThirdState() { return thirdState; }
 
-      int getLED_G()
-      {
-        return _LED_G;
-      }
+      THIRDSTATE *ThirdStateForBlink() { return thirdState;  }
 
-      int getLED_BL()
-      {
-        return _LED_BL;
-      }
+      int getLED_R() { return _LED_R;  }
+
+      int getLED_Y() {  return _LED_Y; }
+
+      int getLED_G() {  return _LED_G; }
+
+      int getLED_BL() { return _LED_BL; }
 
       ~Main()
       {
@@ -225,13 +240,45 @@ void SECONDSTATE::nextState(Main *mc)
   digitalWrite(mc->getLED_Y(),LOW);
   mc->changeState(mc->getThirdState());
   mc->getThirdState()->display(mc->getLED_G());
+  mc->ThirdStateForBlink()->blinkingLedSetup(mc->getLED_BL(),mc->getLEDBLK_INTERVAL());
 }
 
 void THIRDSTATE::nextState(Main *mc)
 {
   digitalWrite(mc->getLED_G(),LOW);
+  mc->ThirdStateForBlink()->blinkingLedDisable();
+
   mc->changeState(mc->getfirstState());
   mc->getfirstState()->display(mc->getLED_R());
+
+
+  delete blink;
+  blink = nullptr;
+}
+
+void FIRSTSTATE::previousState(Main *mc)
+{  
+  digitalWrite(mc->getLED_R(),LOW);
+  mc->changeState(mc->getThirdState());
+  mc->getThirdState()->display(mc->getLED_G());
+  mc->ThirdStateForBlink()->blinkingLedSetup(mc->getLED_BL(),mc->getLEDBLK_INTERVAL());
+}
+
+void SECONDSTATE::previousState(Main *mc)
+{
+  digitalWrite(mc->getLED_Y(),LOW);
+
+  mc->changeState(mc->getfirstState());
+  mc->getfirstState()->display(mc->getLED_R());
+
+}
+
+void THIRDSTATE::previousState(Main *mc)
+{
+  digitalWrite(mc->getLED_G(),LOW);
+  mc->ThirdStateForBlink()->blinkingLedDisable();
+  mc->changeState(mc->getSecondState());
+  mc->getSecondState()->display(mc->getLED_Y());
 
   delete blink;
   blink = nullptr;
@@ -239,21 +286,29 @@ void THIRDSTATE::nextState(Main *mc)
 
 
 
-void SECONDSTATE::previousState(Main *mc)
-{
-  mc->changeState(mc->getfirstState());
-}
+int RED = 2;
+int YELLOW = 4;
+int GREEN = 16;
 
-void THIRDSTATE::previousState(Main *mc)
-{
-  mc->changeState(mc->getSecondState());
-}
+int BLINK = 17;
+int UP = 13;
+int DW = 14;
+Main* mc;
 
 void setup() {
   // put your setup code here, to run once:
+   Serial.begin(115200);
+   while (!Serial) {
+    ; // Wait for serial port to connect. Needed for native USB port only
+  }
+  mc = new Main(RED,YELLOW,GREEN,BLINK,UP,DW);
+  mc->setLEDBLK_INTERVAL(150);
+  
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
+    mc->update();
+
 }
 
